@@ -1,0 +1,27 @@
+# Must be 11 or less because of https://issues.apache.org/jira/browse/DIRSTUDIO-1277
+FROM openjdk:11-jre-slim
+
+WORKDIR /opt
+
+COPY packages/unboundid.zip .
+COPY build_out/config.ldif .
+COPY build_out/data.ldif .
+COPY tools/import-ldif.sh /usr/local/bin/import-ldif
+COPY tools/ldap-ready.sh /usr/local/bin/ldap-ready
+
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends ldap-utils procps unzip && \
+  rm -rf /var/lib/apt/lists/* && \
+  unzip -qq unboundid.zip -d unboundid && \
+  mv unboundid/$(ls -1A unboundid)/* unboundid/ && \
+  rmdir unboundid/unboundid-ldapsdk-* && \
+  rm -f unboundid.zip
+
+ENV LDAP_BINDDN=${LDAP_BINDDN:-"cn=admin,dc=planetexpress,dc=com"}
+ENV LDAP_SECRET=${LDAP_SECRET:-"GoodNewsEveryone"}
+
+ENV PATH=/opt/unboundid/tools:${PATH}
+
+EXPOSE 10389 10636
+
+# ENTRYPOINT ["/opt/bootstrap/bootstrap.sh"]
